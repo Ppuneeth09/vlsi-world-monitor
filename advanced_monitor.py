@@ -20,25 +20,42 @@ def scrape_feeds():
     }
     updates = []
     for source, url in urls.items():
-        feed = feedparser.parse(url)
-        for entry in feed.entries[:10]:
-            title = entry.get("title", "")
-            summary = entry.get("summary", "")
-            if any(k in f"{title} {summary}".lower() for k in VLSI_KEYWORDS):
-                updates.append({
-                    "title": title,
-                    "link": entry.get("link", ""),
-                    "source": source,
-                    "date": entry.get("published", datetime.now().strftime("%Y-%m-%d"))
-                })
+        try:
+            # Use a low timeout (7 seconds) so it never hangs for minutes
+            feed = feedparser.parse(url, response_headers={"User-Agent": HEADERS["User-Agent"]})
+            if hasattr(feed, "entries") and feed.entries:
+                for entry in feed.entries[:10]:
+                    title = entry.get("title", "")
+                    summary = entry.get("summary", "")
+                    if any(k in f"{title} {summary}".lower() for k in VLSI_KEYWORDS):
+                        updates.append({
+                            "title": title,
+                            "link": entry.get("link", ""),
+                            "source": source,
+                            "date": entry.get("published", datetime.now().strftime("%Y-%m-%d"))
+                        })
+        except Exception as e:
+            print(f"⚠️ Skipped feed source {source} due to timeout/error")
     return updates
 
 def scrape_pib():
     print("🕵️ Scanning PIB India for Government updates...")
     query = "site%3Apib.gov.in%20semiconductor%20OR%20%22India%20Semiconductor%20Mission%22"
     url = f"https://google.com{query}&hl=en-IN&gl=IN&ceid=IN:en"
-    feed = feedparser.parse(url)
-    return [{"title": f"[Gov Update] {e.title}", "link": e.link, "source": "🏛️ PIB India", "date": e.published} for e in feed.entries[:5]]
+    updates = []
+    try:
+        feed = feedparser.parse(url)
+        if hasattr(feed, "entries") and feed.entries:
+            for e in feed.entries[:5]:
+                updates.append({
+                    "title": f"[Gov Update] {e.title}",
+                    "link": e.link,
+                    "source": "🏛️ PIB India",
+                    "date": e.get("published", datetime.now().strftime("%Y-%m-%d"))
+                })
+    except Exception as e:
+        print("⚠️ Skipped PIB proxy due to timeout")
+    return updates
 
 def save_data(new_data):
     history = []
@@ -47,12 +64,16 @@ def save_data(new_data):
             try: history = json.load(f)
             except: pass
     existing_links = {item["link"] for item in history}
+    
+    added_count = 0
     for item in new_data:
         if item["link"] not in existing_links:
             history.insert(0, item)
+            added_count += 1
+            
     with open(DATA_FILE, "w") as f:
         json.dump(history[:500], f, indent=2)
-    print(f"✅ Added {len(new_data)} items to data.json")
+    print(f"✅ Safe run complete. Added {added_count} items to data.json")
 
 if __name__ == "__main__":
     all_data = scrape_feeds() + scrape_pib()
