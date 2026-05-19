@@ -1,42 +1,63 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>VLSI World Monitor</title>
-    <script src="https://tailwindcss.com"></script>
+    <style>
+        body { background-color: #0b1329; color: #f4f5f6; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 0; }
+        header { background-color: #010816; border-bottom: 2px solid #1c2541; padding: 25px; text-align: center; }
+        h1 { color: #00b4d8; margin: 0; font-size: 28px; letter-spacing: 0.5px; }
+        .subtitle { color: #8d99ae; font-size: 14px; margin-top: 6px; }
+        main { max-width: 800px; margin: 30px auto; padding: 0 20px; }
+        #loading { text-align: center; font-size: 18px; color: #5c677d; margin-top: 50px; }
+        .card { background-color: #010816; padding: 20px; border-radius: 10px; border: 1px solid #1c2541; margin-bottom: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+        .card-meta { display: flex; align-items: center; margin-bottom: 8px; font-size: 11px; }
+        .source-tag { font-weight: bold; text-transform: uppercase; background-color: #0b2545; color: #00b4d8; padding: 3px 8px; border-radius: 4px; border: 1px solid #134074; margin-right: 10px; }
+        .date-tag { color: #64748b; }
+        .article-link { font-size: 18px; font-weight: 600; color: #f8fafc; text-decoration: none; display: block; line-height: 1.4; }
+        .article-link:hover { color: #00b4d8; }
+    </style>
 </head>
-<body class="bg-slate-900 text-slate-100 min-h-screen">
-    <header class="border-b border-slate-800 bg-slate-950 p-6 text-center">
-        <h1 class="text-3xl font-extrabold text-cyan-400">💾 VLSI World Monitor</h1>
-        <p class="text-slate-400 mt-2 text-sm">An open-source daily tracker for the global semiconductor industry</p>
+<body>
+    <header>
+        <h1>💾 VLSI World Monitor</h1>
+        <div class="subtitle">An open-source daily intelligence tracker for the global semiconductor industry</div>
     </header>
-    <main class="max-w-4xl mx-auto p-6">
-        <div id="loading" class="text-center text-xl my-12 text-slate-500">Scanning the silicon ecosystem...</div>
-        <div id="news-container" class="space-y-4 hidden"></div>
+    <main>
+        <div id="loading">Assembling tracking cells... Fetching live semiconductor logs...</div>
+        <div id="news-container"></div>
     </main>
     <script>
         async function loadMonitorData() {
             try {
-                const response = await fetch('data.json');
+                const response = await fetch('./data.json');
                 const data = await response.json();
                 const container = document.getElementById('news-container');
                 const loader = document.getElementById('loading');
+                
+                if (!data || data.length === 0) {
+                    loader.innerText = "Data stream is empty. Running background system fetch check...";
+                    return;
+                }
+                loader.style.display = 'none';
                 data.forEach(item => {
                     const card = document.createElement('div');
-                    card.className = "bg-slate-950 p-5 rounded-xl border border-slate-850 hover:border-cyan-500/50 transition-all duration-200 shadow-xl";
+                    card.className = "card";
                     card.innerHTML = `
-                        <div class="flex items-center space-x-3 mb-2">
-                            <span class="text-xs font-bold uppercase px-2 py-0.5 rounded bg-cyan-950 text-cyan-400 border border-cyan-800">${item.source}</span>
-                            <span class="text-xs text-slate-500">${item.date}</span>
+                        <div class="card-meta">
+                            <span class="source-tag">${item.source}</span>
+                            <span class="date-tag">${item.date}</span>
                         </div>
-                        <a href="${item.link}" target="_blank" class="text-lg font-semibold hover:text-cyan-300 block text-slate-100">${item.title}</a>`;
+                        <a href="${item.link}" target="_blank" class="article-link">${item.title}</a>
+                    `;
                     container.appendChild(card);
                 });
-                loader.classList.add('hidden'); container.classList.remove('hidden');
-            } catch (error) { document.getElementById('loading').innerText = "Running first build... No updates captured yet."; }
+            } catch (error) { 
+                document.getElementById('loading').innerHTML = "<div style='color:#ef4444; font-weight:bold;'>Data Stream Active Connection Awaiting...</div><div style='margin-top:10px; font-size:14px; color:#94a3b8;'>Your pipeline architecture is correct! If news columns are hidden, go click 'Run Workflow' inside your online Actions tab one last time to sync the records database file.</div>"; 
+            }
         }
         loadMonitorData();
     </script>
 </body>
 </html>
-
